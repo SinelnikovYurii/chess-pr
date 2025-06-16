@@ -1,0 +1,124 @@
+/* Общие стили */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+}
+
+/* Шапка */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #333;
+    color: white;
+    padding: 10px 40px;
+    position: fixed;
+    top: 0;
+    width: 98%;
+    z-index: 1000;
+}
+
+.logo {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.navbar a {
+    color: white;
+    text-decoration: none;
+    margin-right: 20px;
+    cursor: pointer;
+}
+
+.user-controls button {
+    background-color: #f0ad4e;
+    border: none;
+    padding: 6px 12px;
+    color: black;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+/* Контент */
+#content-container {
+    margin-top: 70px; /* Чтобы обойти header */
+    padding: 20px;
+}
+
+.page {
+    display: none;
+    transition: opacity 0.3s ease-in-out;
+}
+
+/* Основная страница игры */
+#game-page {
+    display: block;
+}
+
+#board {
+    display: grid;
+    grid-template-columns: repeat(8, 60px);
+    grid-template-rows: repeat(8, 60px);
+    width: 480px;
+    height: 480px;
+    margin: auto;
+    border: 2px solid #333;
+    background-color: #fff;
+}
+
+.cell {
+    width: 60px;
+    height: 60px;
+    box-sizing: border-box;
+    position: relative;
+}
+
+.white {
+    background-color: #f0d9b5;
+}
+
+.black {
+    background-color: #b58863;
+}
+
+.piece {
+    width: 60px;
+    height: 60px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    cursor: pointer;
+}
+
+/* Футер */
+.footer {
+    background-color: #333;
+    color: white;
+    text-align: center;
+    padding: 10px 0;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+}
+
+
+.possible {
+    position: relative;
+}
+
+.possible::after {
+    content: "";
+    width: 10px;
+    height: 10px;
+    background-color: #20dede;
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+}
+
+.selected {
+    background-color: rgba(147, 231, 167, 0.51) !important;
+}
