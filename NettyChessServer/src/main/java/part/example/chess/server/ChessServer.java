@@ -19,13 +19,8 @@ import org.slf4j.LoggerFactory;
 
 
 public class ChessServer {
-
     private static final Logger logger = LoggerFactory.getLogger(ChessServer.class);
-    private final int port;
-
-    public ChessServer(int port) {
-        this.port = port;
-    }
+    private static final int PORT = 8080;
 
     public void start() throws Exception {
         EventLoopGroup bossGroup = new NioEventLoopGroup();
@@ -35,7 +30,6 @@ public class ChessServer {
             ServerBootstrap b = new ServerBootstrap();
             b.group(bossGroup, workerGroup)
                     .channel(NioServerSocketChannel.class)
-                    .handler(new LoggingHandler(LogLevel.INFO))
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         protected void initChannel(SocketChannel ch) {
@@ -49,8 +43,8 @@ public class ChessServer {
                     .option(ChannelOption.SO_BACKLOG, 128)
                     .childOption(ChannelOption.SO_KEEPALIVE, true);
 
-            ChannelFuture f = b.bind(port).sync();
-            logger.info("HTTP Chess server started on port {}", port);
+            ChannelFuture f = b.bind(PORT).sync();
+            logger.info("HTTP Chess server started on port {}", PORT);
             f.channel().closeFuture().sync();
         } finally {
             workerGroup.shutdownGracefully();
@@ -59,9 +53,6 @@ public class ChessServer {
     }
 
     public static void main(String[] args) throws Exception {
-        new ChessServer(8080).start();
+        new ChessServer().start();
     }
-
-
-
 }

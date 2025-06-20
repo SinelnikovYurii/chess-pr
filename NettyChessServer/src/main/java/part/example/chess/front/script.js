@@ -33,23 +33,27 @@ function createBoard() {
     }
 }
 
+let pollInterval = null;
+
 async function pollGameStatus() {
-    while (true) {
-        const response = await fetch(`http://localhost:8080/api/game/status/${currentGameId}`, {
-            headers: {
-                "Authorization": `Bearer ${localStorage.getItem("token")}`
-            }
+    pollInterval = setInterval(async () => {
+        if (!gameId) {
+            clearInterval(pollInterval);
+            return;
+        }
+
+        const response = await fetch(`http://localhost:8080/api/game/status/${gameId}`, {
+            headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
         });
+
         const data = await response.json();
 
         if (data.turn !== myTurn) {
-            updateBoard(data.board); // Обновляем доску
+            updateBoard(data.board);
             myTurn = true;
-            break;
+            clearInterval(pollInterval);
         }
-
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Ждём 2 сек
-    }
+    }, 100); // Проверяем каждые 2 секунды
 }
 
 function updateBoard(newBoardState) {
@@ -75,6 +79,38 @@ function updateBoard(newBoardState) {
         img.className = 'piece';
         img.style.backgroundImage = getPieceImage(piece.type, piece.color);
         cell.appendChild(img);
+    }
+}
+
+async function joinGame(gameIdt) {
+    const token = localStorage.getItem("token");
+    if (!token) {
+        alert("Сначала войдите в систему");
+        return false;
+    }
+
+    try {
+        const response = await fetch(`http://localhost:8080/api/game/join/${gameIdt}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            alert("Вы успешно присоединились к игре");
+            gameId = gameIdt;
+            showPage('game');
+            fetchGameStatus();
+        } else {
+            alert(data.message || "Не удалось присоединиться к игре");
+        }
+    } catch (err) {
+        console.error("Ошибка присоединения к игре:", err);
+        alert("Произошла ошибка при присоединении к игре");
     }
 }
 
@@ -144,49 +180,84 @@ function handleCellClick(cell) {
     }
 }
 
-function createNewGame() {
-    fetch('http://localhost:8080/api/game/create', {
-        method: 'POST'
-    })
-        .then(res => res.json())
-        .then(data => {
-            if (data.gameId) {
-                gameId = data.gameId;
+async function createNewGame() {
+    try {
+        const token = localStorage.getItem('token');
 
-                showPage('game');
+        console.log("токен на создание игры = " + localStorage.getItem('token'));
+        const response = await fetch('http://localhost:8080/api/game/create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
 
-                fetchGameStatus(); // Загрузка состояния новой игры
-            } else {
-                alert("Не удалось создать игру");
             }
-        })
-        .catch(err => {
-            console.error("Ошибка создания игры:", err);
-            alert("Не удалось создать игру");
         });
+
+        const data = await response.json();
+        console.log("Ответ от сервера:", data);
+
+        if (data.gameId) {
+            gameId = data.gameId;
+            showPage('game');
+            fetchGameStatus(); // Загрузка состояния новой игры
+        } else {
+            alert("Не удалось создать игру");
+        }
+    } catch (err) {
+        console.error("Ошибка создания игры:", err);
+        alert("Не удалось создать игру");
+    }
 }
 
 
+// auth.js или script.js
 function fetchAllGames() {
-    fetch('http://localhost:8080/api/games')
-        .then(res => res.json())
+    const token = localStorage.getItem("token");
+    if (!token) {
+        alert("Сначала войдите в систему");
+        return;
+    }
+
+    fetch('http://localhost:8080/api/games', {
+        headers: {
+            "Authorization": `Bearer ${token}`
+        }
+    })
+        .then(res => {
+            if (!res.ok) {
+                throw new Error("HTTP error: " + res.status);
+            }
+            return res.json();
+        })
         .then(games => {
             const list = document.getElementById('game-list');
-            list.innerHTML = '';
+            list.innerHTML = ''; // Очистка списка перед загрузкой
+
             games.forEach(game => {
                 const li = document.createElement('li');
                 li.textContent = game.id + ' - ' + game.status;
 
-                li.addEventListener('click', () => {
-                    gameId = game.id;
-                    fetchGameStatus();
-                });
+                // Проверяем, есть ли уже два игрока
+                const isFull = game.whitePlayer && game.blackPlayer;
+
+                if (isFull) {
+                    li.textContent += ' (Игра заполнена)';
+                    li.style.color = 'gray';
+                } else {
+                    // Если место есть — можно присоединиться
+                    li.addEventListener('click', () => {
+                        console.log("Тестовое присоединение по id = " + game.id);
+                        joinGame(game.id);
+                    });
+                }
 
                 list.appendChild(li);
             });
         })
         .catch(err => {
             console.error("Ошибка получения партий:", err);
+            alert("Не удалось получить список партий");
         });
 }
 
@@ -194,8 +265,11 @@ function fetchPossibleMoves(fromStr) {
 
     removeCss('possible', 'selected');
 
-    fetch(`http://localhost:8080/api/game/moves/${gameId}/${fromStr}`)
-        .then(res => res.json())
+    fetch(`http://localhost:8080/api/game/moves/${gameId}/${fromStr}`, {
+        headers: {
+            "Authorization": `Bearer ${localStorage.getItem("token")}`
+        }
+    }).then(res => res.json())
         .then(moves => {
             console.log("Возможные ходы:", moves);
 
@@ -252,31 +326,40 @@ function chessToIndex(posStr) {
 }
 
 
-function fetchGameStatus() {
-    console.log("Получаю статус игры...");
+let isFetchingGameStatus = false;
 
-    fetch(`http://localhost:8080/api/game/status/${gameId}`)
-        .then(res => {
-            if (!res.ok) {
-                return res.text().then(text => { throw new Error(text); });
-            }
-            return res.json();
-        })
+async function fetchGameStatus() {
+    if (isFetchingGameStatus) return; // Игнорируем, если уже идёт загрузка
+    isFetchingGameStatus = true;
+
+    console.log("Получаю статус игры... по id = " + gameId);
+
+    fetch(`http://localhost:8080/api/game/status/${gameId}`, {
+        headers: {
+            "Authorization": `Bearer ${localStorage.getItem("token")}`
+        }
+    }).then(res => {
+        if (!res.ok) {
+            return res.text().then(text => { throw new Error(text); });
+        }
+        return res.json();
+    })
         .then(data => {
-
             if (document.getElementById('game-page').style.display === 'block') {
                 console.log("Данные получены:", data);
                 statusElement.textContent = `Ход: ${data.turn}, Статус: ${data.status}`;
             }
-
-
             updateBoard(data.board);
             statusElement.textContent = `Ход: ${data.turn}, Статус: ${data.status}`;
         })
         .catch(err => {
             console.error("Ошибка получения статуса:", err.message);
             statusElement.textContent = "Не удалось получить статус игры";
+        })
+        .finally(() => {
+            isFetchingGameStatus = false;
         });
+
 }
 
 
@@ -288,20 +371,57 @@ function showPage(pageId) {
     document.querySelectorAll('.page').forEach(page => {
         page.style.display = 'none';
     });
-
     const selectedPage = document.getElementById(pageId + "-page");
     if (selectedPage) {
         selectedPage.style.display = 'block';
 
         if (pageId === 'game' && !boardCreated) {
-            console.log("Рисуем доску");
-            createBoard(); // ← создаём доску один раз
+            createBoard();
             boardCreated = true;
         }
 
         if (pageId === 'game') {
-            fetchGameStatus(); // ← загружаем текущее состояние
+            fetchGameStatus(); // Только если есть gameId
         }
+
+        if (pageId === 'games') {
+            fetchAllGames(); // Загружаем список партий
+        }
+    }
+}
+
+function checkAuthStatus() {
+    const token = localStorage.getItem("token");
+    if (token) {
+        // Проверка валидности токена
+        validateToken(token).then(isValid => {
+            if (isValid) {
+                showPage('game'); // Перенаправляем на игровую страницу
+            } else {
+                logout(); // Или на страницу входа
+            }
+        });
+    }
+}
+
+// Функция для проверки валидности токена
+async function validateToken(token) {
+    try {
+        const response = await fetch('http://localhost:8080/api/auth/validate', {
+            method: 'GET',
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Invalid token');
+        }
+
+        return true;
+    } catch (error) {
+        console.error('Token validation error:', error);
+        return false;
     }
 }
 

@@ -36,7 +36,8 @@ public class Game {
         this.whitePlayer = whitePlayer;
         this.blackPlayer = blackPlayer;
         this.board = new Board();
-
+        this.turn = "white";
+        this.status = "ongoing";
 
         initializePieces();
     }
@@ -49,6 +50,34 @@ public class Game {
         this.turn = turn;
     }
 
+    public boolean isPlayersTurn(String username) {
+        if (turn.equals("white")) {
+            return username.equals(whitePlayer.getUsername());
+        } else if (turn.equals("black") && blackPlayer != null) {
+            return username.equals(blackPlayer.getUsername());
+        }
+        return false;
+    }
+
+    public boolean hasTwoPlayers() {
+        return blackPlayer != null;
+    }
+
+    public Map<String, Object> getBoardStateForClient() {
+        Map<String, Object> boardState = new HashMap<>();
+
+        // Добавляем статус игры
+        boardState.put("status", status);
+
+        // Добавляем очередь хода
+        boardState.put("turn", turn);
+
+        // Получаем состояние доски
+        Map<String, PieceInfo> pieces = board.getBoardStateForClient();
+        boardState.put("board", pieces);
+
+        return boardState;
+    }
 
     private void initializePieces() {
         // Белые фигуры
@@ -112,17 +141,6 @@ public class Game {
         this.status = status;
     }
 
-    public static class PieceInfo {
-        private final String type;
-        private final String color;
 
-        public PieceInfo(String type, String color) {
-            this.type = type;
-            this.color = color;
-        }
-
-        public String getType() { return type; }
-        public String getColor() { return color; }
-    }
 
 }

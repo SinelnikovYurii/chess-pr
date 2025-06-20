@@ -1,6 +1,7 @@
 package part.example.chess.model.genuine;
 
 import part.example.chess.model.figures.Piece;
+import part.example.chess.model.figures.PieceInfo;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -14,10 +15,9 @@ public class Board {
 
     public Piece getPieceAt(Position position) {
         if (pieces.containsKey(position)) {
-            System.out.println("Фигура найдена на позиции board: " + position.getX() + "" + position.getY());
             return pieces.get(position);
         } else {
-            System.out.println("Фигура не найдена на позиции board: " + position.getX() + "" + position.getY());
+
             return null;
         }
     }
@@ -30,6 +30,20 @@ public class Board {
         pieces.remove(piece.getPosition());
         piece.setPosition(from);
         pieces.put(from, piece);
+    }
+
+    public Map<String, PieceInfo> getBoardStateForClient() {
+        Map<String, PieceInfo> state = new HashMap<>();
+
+        for (Map.Entry<Position, Piece> entry : getPieces().entrySet()) {
+            Position pos = entry.getKey();
+            Piece piece = entry.getValue();
+
+            String key = pos.getX() + "" + pos.getY(); // Например: "04"
+            state.put(key, new PieceInfo(piece.getType(), piece.getColor()));
+        }
+
+        return state;
     }
 
     public boolean movePiece(Piece piece, Position target) {
@@ -49,7 +63,7 @@ public class Board {
         return true;
     }
 
-    public Map<Position, Piece> getPieces() {
-        return pieces;
+    public synchronized Map<Position, Piece> getPieces() {
+        return new HashMap<>(pieces); // ← Возвращаем копию
     }
 }

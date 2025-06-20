@@ -5,6 +5,23 @@ body {
     font-family: Arial, sans-serif;
 }
 
+#login-page input {
+    display: block;
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 8px;
+    box-sizing: border-box;
+}
+
+#login-page button {
+    background-color: #28a745;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+}
+
 /* Шапка */
 .header {
     display: flex;
@@ -15,7 +32,7 @@ body {
     padding: 10px 40px;
     position: fixed;
     top: 0;
-    width: 98%;
+    width: 97%;
     z-index: 1000;
 }
 
@@ -42,18 +59,32 @@ body {
 
 /* Контент */
 #content-container {
-    margin-top: 70px; /* Чтобы обойти header */
+    margin-top: 70px;
     padding: 20px;
 }
 
+
 .page {
     display: none;
-    transition: opacity 0.3s ease-in-out;
 }
 
-/* Основная страница игры */
-#game-page {
-    display: block;
+#games-page {
+    padding: 20px;
+}
+
+#games-page ul {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+#games-page li {
+    margin-bottom: 10px;
+    cursor: pointer;
+    color: #333;
+}
+
+#games-page li:hover {
+    text-decoration: underline;
 }
 
 #board {

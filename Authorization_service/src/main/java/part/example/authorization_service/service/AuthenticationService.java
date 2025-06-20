@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import part.example.authorization_service.DTO.AuthResponse;
 import part.example.authorization_service.DTO.LoginRequest;
 import part.example.authorization_service.DTO.RegisterRequest;
+import part.example.authorization_service.DTO.RegistrationResponse;
 import part.example.authorization_service.JWT.JwtUtil;
 import part.example.authorization_service.models.User;
 import part.example.authorization_service.repository.UserRepository;
@@ -34,12 +35,16 @@ public class AuthenticationService {
     private JwtUtil jwtUtil;
 
     public ResponseEntity<?> register(RegisterRequest request) {
+        System.out.println("Начало регистрации пользователя: " + request.getUsername());
+
         if (userRepository.existsByUsername(request.getUsername())) {
-            return new ResponseEntity<>("Пользователь уже существует", HttpStatus.BAD_REQUEST);
+            System.out.println("Пользователь уже существует: " + request.getUsername());
+            return new ResponseEntity<>(new RegistrationResponse("Пользователь уже существует"), HttpStatus.BAD_REQUEST);
         }
 
         if (userRepository.existsByEmail(request.getEmail())) {
-            return new ResponseEntity<>("Email уже используется", HttpStatus.BAD_REQUEST);
+            System.out.println("Email уже используется: " + request.getEmail());
+            return new ResponseEntity<>(new RegistrationResponse("Email уже используется"), HttpStatus.BAD_REQUEST);
         }
 
         User user = new User();
@@ -47,9 +52,14 @@ public class AuthenticationService {
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
 
-        userRepository.save(user);
-
-        return new ResponseEntity<>("Регистрация успешна", HttpStatus.CREATED);
+        try {
+            userRepository.save(user);
+            System.out.println("Пользователь успешно зарегистрирован: " + request.getUsername());
+            return new ResponseEntity<>(new RegistrationResponse("Регистрация успешна"), HttpStatus.CREATED);
+        } catch (Exception e) {
+            System.out.println("Ошибка при сохранении пользователя: " + e.getMessage());
+            return new ResponseEntity<>(new RegistrationResponse("Ошибка регистрации"), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     public ResponseEntity<?> login(LoginRequest request) {
